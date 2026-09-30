@@ -1,0 +1,32 @@
+# Qwen-Image 2.1 support for Forge Neo
+# transparent output: the alpha channel kept by the VAE is attached to each saved image
+
+import numpy as np
+from PIL import Image
+
+from .engine import QwenImage21Engine
+
+# an image whose alpha never drops below this stays RGB, exactly as before
+OPAQUE = 250
+
+
+def apply(p, image: Image.Image) -> Image.Image:
+    engine = getattr(p, "sd_model", None)
+    if not isinstance(engine, QwenImage21Engine):
+        return image
+
+    alpha = engine.last_alpha
+    index = getattr(p, "batch_index", 0)
+    if alpha is None or index >= alpha.shape[0]:
+        return image
+
+    a = alpha[index, 0].clamp(-1.0, 1.0).add(1.0).mul(127.5).round().numpy().astype(np.uint8)
+    if int(a.min()) >= OPAQUE:
+        return image
+    if (a.shape[1], a.shape[0]) != image.size:
+        # resized after decoding (upscaler, face restoration...): the mask no longer lines up
+        return image
+
+    rgba = image.convert("RGBA")
+    rgba.putalpha(Image.fromarray(a, mode="L"))
+    return rgba

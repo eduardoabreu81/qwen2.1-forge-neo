@@ -1,0 +1,7 @@
+__pycache__/
+*.py[cod]
+*.safetensors
+*.gguf
+*.ckpt
+.ruff_cache/
+.pytest_cache/
