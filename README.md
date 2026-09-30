@@ -43,9 +43,14 @@ A prompt that already asks for an RGBA image is left as written, so the format c
 
 Images with transparency are saved as RGBA PNG; fully opaque images stay RGB. JPG and WebP have no alpha, so save as PNG. The alpha is dropped when the image is resized after decoding (upscaler, face restoration) or when the VAE falls back to tiled decoding.
 
+## LoRA
+
+Qwen-Image 2.1 LoRAs load through Forge's usual `<lora:name:weight>` syntax, including the diffusers / PEFT format (`transformer.transformer_blocks.N...lora_A / lora_B`), e.g. the [Viggle turbo LoRAs](https://huggingface.co/Viggle/Qwen-Image-2.1-viggle-turbo).
+
+Checkpoints saved by ComfyUI fuse the MLP gate and up projections (`img_mlp.gate_up`); LoRAs address the two halves (`img_mlp.gate_layer`, `img_mlp.proj`) and are routed to the matching half, as ComfyUI does. LoRAs for Qwen-Image 1.x (20B) do not fit this model.
+
 ## Not supported yet
 
-- LoRA
 - image editing with reference images
 - prefix K/V caching across steps
 

@@ -15,7 +15,7 @@ from backend.operations import using_forge_operations
 from backend.state_dict import load_state_dict
 from huggingface_guess import detection, model_list
 
-from . import model, presets
+from . import lora, model, presets
 from .engine import QwenImage21Engine
 from .text_encoder import Qwen3VL8B
 from .vae import QwenImage21VAE
@@ -133,6 +133,7 @@ def apply() -> None:
         loader.possible_models = (*loader.possible_models, QwenImage21Engine)
     _hook_replace_state_dict()
     _hook_components()
+    lora.hook()
 
     try:
         presets.register()

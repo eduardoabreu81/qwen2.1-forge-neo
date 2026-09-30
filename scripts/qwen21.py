@@ -27,6 +27,20 @@ else:
         traceback.print_exc()
 
 
+_warned_sigma = False
+
+
+def _warn_discarded_sigma(p) -> None:
+    # a user setting, left as it is: the extension only says what it costs a few-step model
+    global _warned_sigma
+    from modules import shared
+
+    discard = p.override_settings.get("always_discard_next_to_last_sigma", getattr(shared.opts, "always_discard_next_to_last_sigma", False))
+    if discard and not _warned_sigma:
+        _warned_sigma = True
+        print("[Qwen-Image 2.1] 'Always discard next-to-last sigma' is on: few-step (turbo) generations lose fine detail. It is under Settings > Sampler Parameters (visible with --adv-samplers).")
+
+
 class Qwen21Script(scripts.Script):
     # options for Qwen-Image 2.1; with any other model the script does nothing
     def title(self):
@@ -41,10 +55,19 @@ class Qwen21Script(scripts.Script):
         self.infotext_fields = [(transparent, INFOTEXT_TRANSPARENT)]
         return [transparent]
 
+    def before_process(self, p, *args):
+        # a module that imported the LoRA key mapping after startup still holds the original
+        from lib_qwen21 import lora
+
+        lora.hook()
+
     def process(self, p, transparent=False, *args):
         from lib_qwen21 import alpha, prompting
 
-        if not transparent or not alpha.is_qwen21(p):
+        if not alpha.is_qwen21(p):
+            return
+        _warn_discarded_sigma(p)
+        if not transparent:
             return
         p.all_prompts = [prompting.transparent(x) for x in p.all_prompts]
         if getattr(p, "all_hr_prompts", None):
