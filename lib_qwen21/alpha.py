@@ -8,12 +8,18 @@ from .engine import QwenImage21Engine
 
 # an image whose alpha never drops below this stays RGB, exactly as before
 OPAQUE = 250
+# near-zero alpha is noise over undefined colour (faint specks in the background): cleared
+FLOOR = 6
+
+
+def is_qwen21(p) -> bool:
+    return isinstance(getattr(p, "sd_model", None), QwenImage21Engine)
 
 
 def apply(p, image: Image.Image) -> Image.Image:
-    engine = getattr(p, "sd_model", None)
-    if not isinstance(engine, QwenImage21Engine):
+    if not is_qwen21(p):
         return image
+    engine = p.sd_model
 
     alpha = engine.last_alpha
     index = getattr(p, "batch_index", 0)
@@ -27,6 +33,7 @@ def apply(p, image: Image.Image) -> Image.Image:
         # resized after decoding (upscaler, face restoration...): the mask no longer lines up
         return image
 
+    a[a < FLOOR] = 0
     rgba = image.convert("RGBA")
     rgba.putalpha(Image.fromarray(a, mode="L"))
     return rgba

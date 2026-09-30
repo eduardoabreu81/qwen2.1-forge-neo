@@ -33,11 +33,13 @@ On GPUs without bf16 (RTX 20 series and older) the transformer and the VAE run i
 
 ## Transparent images
 
-Qwen-Image 2.1 decodes an alpha channel. Ask for it with the prompt format Qwen recommends:
+Qwen-Image 2.1 decodes an alpha channel. Tick **Transparent background** in the **Qwen-Image 2.1** accordion and write the prompt as usual (`a cute cartoon dragon sticker`): the extension wraps it in the format Qwen recommends,
 
 ```
 This is an RGBA image with transparency. A cute cartoon dragon sticker. The image has alpha channel and the background is transparent.
 ```
+
+A prompt that already asks for an RGBA image is left as written, so the format can also be typed by hand.
 
 Images with transparency are saved as RGBA PNG; fully opaque images stay RGB. JPG and WebP have no alpha, so save as PNG. The alpha is dropped when the image is resized after decoding (upscaler, face restoration) or when the VAE falls back to tiled decoding.
 
