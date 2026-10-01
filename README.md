@@ -11,10 +11,10 @@
 
 </div>
 
-Generate with **[Qwen-Image 2.1](https://huggingface.co/Qwen/Qwen-Image-2.1)** inside Forge Neo, using the checkpoint, preset and Generate button you already know — sharp text rendering, coherent scenes, transparent images and fast turbo checkpoints, even on 8 GB GPUs.
+Generate with **[Qwen-Image 2.1](https://huggingface.co/Qwen/Qwen-Image-2.1)** inside Forge Neo, using the checkpoint, preset and Generate button you already know - sharp text rendering, coherent scenes, transparent images and fast turbo checkpoints, even on 8 GB GPUs.
 
 > [!Important]
-> This extension requires an up-to-date **Forge Neo** (the `neo` branch, updated on or after 30 September 2026). On an older version it stays disabled and tells you so in the console — Forge Neo itself keeps working as usual.
+> This extension requires an up-to-date **Forge Neo** (the `neo` branch, updated on or after 30 September 2026). On an older version it stays disabled and tells you so in the console - Forge Neo itself keeps working as usual.
 
 ---
 
@@ -31,14 +31,14 @@ Generate with **[Qwen-Image 2.1](https://huggingface.co/Qwen/Qwen-Image-2.1)** i
 
 ## 🆕 What's New
 
-### v0.1.0 — First Release
+### v0.1.0 - First Release
 
-- **Qwen-Image 2.1 in Forge Neo** — checkpoint, text encoder and VAE load through the usual **VAE / Text Encoder** selector, including the quantized files made for ComfyUI.
-- **qwen21 UI preset** — sampler, schedule, steps and CFG ready for turbo checkpoints.
-- **Viggle Turbo schedule** — the steps turbo checkpoints were trained on, for sharp images in 6–8 steps.
-- **Transparent background** — one checkbox, and the image is saved as a PNG with real transparency.
-- **Remove VAE grid** — cleans the faint dot-and-stripe pattern the Qwen-Image 2.1 VAE leaves on smooth areas.
-- **LoRA support** — Qwen-Image 2.1 LoRAs with the usual `<lora:name:weight>` syntax.
+- **Qwen-Image 2.1 in Forge Neo** - checkpoint, text encoder and VAE load through the usual **VAE / Text Encoder** selector, including the quantized files made for ComfyUI.
+- **qwen21 UI preset** - sampler, schedule, steps and CFG ready for turbo checkpoints.
+- **Viggle Turbo schedule** - the steps turbo checkpoints were trained on, for sharp images in 6-8 steps.
+- **Transparent background** - one checkbox, and the image is saved as a PNG with real transparency.
+- **Remove VAE grid** - cleans the faint dot-and-stripe pattern the Qwen-Image 2.1 VAE leaves on smooth areas.
+- **LoRA support** - Qwen-Image 2.1 LoRAs with the usual `<lora:name:weight>` syntax.
 
 ---
 
@@ -46,26 +46,26 @@ Generate with **[Qwen-Image 2.1](https://huggingface.co/Qwen/Qwen-Image-2.1)** i
 
 ### 🖼️ Native Generation
 
-- Runs inside txt2img — no separate tab, no extra environment
+- Runs inside txt2img - no separate tab, no extra environment
 - Works with the Forge Neo model folders and the **VAE / Text Encoder** selector you already use
-- Loads quantized checkpoints and text encoders as they are — tested on an 8 GB RTX 2070
+- Loads quantized checkpoints and text encoders as they are - tested on an 8 GB RTX 2070
 - Negative prompt and CFG work as with any other model
 
 ### ⚡ Turbo Checkpoints
 
 - **Viggle Turbo** schedule in the **Schedule type** list
 - Adapts the steps to the image size automatically
-- Works with any step count; 6–8 steps is the sweet spot
+- Works with any step count; 6-8 steps is the sweet spot
 
 ### 🎛️ Base Checkpoints
 
-- **Qwen Base** schedule in the **Schedule type** list — the official schedule of the model, for base (non-turbo) checkpoints
+- **Qwen Base** schedule in the **Schedule type** list - the official schedule of the model, for base (non-turbo) checkpoints
 - Adapts to the image size automatically
 
 ### 🧊 Transparent Images
 
 - **Transparent background** checkbox in the **Qwen-Image 2.1** accordion
-- Write only the subject — the extension adds the wording the model expects
+- Write only the subject - the extension adds the wording the model expects
 - Saved as PNG with a real alpha channel; normal images stay exactly as before
 
 ### 🧼 Clean Output
@@ -80,7 +80,7 @@ Generate with **[Qwen-Image 2.1](https://huggingface.co/Qwen/Qwen-Image-2.1)** i
 
 ### 🛡️ Safe by Design
 
-- Changes no Forge Neo file — remove the extension and everything is as it was
+- Changes no Forge Neo file - remove the extension and everything is as it was
 - Checks your Forge Neo at startup and stays disabled if something it needs is missing
 - Other models are not affected
 
@@ -108,8 +108,8 @@ Generate with **[Qwen-Image 2.1](https://huggingface.co/Qwen/Qwen-Image-2.1)** i
 
 | Checkpoint | Sampler | Schedule type | Steps | CFG |
 | :--- | :--- | :--- | :--- | :--- |
-| **Turbo** | Euler | Viggle Turbo | 6–8 | 1 |
-| **Base** (non-turbo) | Euler or Res Multistep | Qwen Base, Simple or Beta | 16–25 | 2–3, with a negative prompt |
+| **Turbo** | Euler | Viggle Turbo | 6-8 | 1 |
+| **Base** (non-turbo) | Euler or Res Multistep | Qwen Base, Simple or Beta | 16-25 | 2-3, with a negative prompt |
 
 ---
 
@@ -117,8 +117,8 @@ Generate with **[Qwen-Image 2.1](https://huggingface.co/Qwen/Qwen-Image-2.1)** i
 
 - Keep **Diffusion in Low Bits** on *Automatic*
 - To keep **Viggle Turbo** after switching presets, set it in **Settings** → **Presets** → **QWEN21**
-- **Viggle Turbo** is for turbo checkpoints only — on a base checkpoint it leaves grain in fine detail such as hair, at any step count; use **Qwen Base** or **Simple** there
-- Many style LoRAs are made for the base model — on a turbo checkpoint, try a higher weight (1.2–1.5) or use them with a base checkpoint
+- **Viggle Turbo** is for turbo checkpoints only - on a base checkpoint it leaves grain in fine detail such as hair, at any step count; use **Qwen Base** or **Simple** there
+- Many style LoRAs are made for the base model - on a turbo checkpoint, try a higher weight (1.2-1.5) or use them with a base checkpoint
 - Use the trigger word a LoRA asks for
 - Transparent images need **PNG**; upscalers and face restoration remove the transparency
 - Before uninstalling, switch the UI preset to another one
@@ -131,15 +131,15 @@ Generate with **[Qwen-Image 2.1](https://huggingface.co/Qwen/Qwen-Image-2.1)** i
 
 - **[Forge Neo](https://github.com/Haoming02/sd-webui-forge-classic/tree/neo)** by Haoming02
 - **[Qwen-Image 2.1](https://huggingface.co/Qwen/Qwen-Image-2.1)** by the Qwen team
-- **[ComfyUI](https://github.com/Comfy-Org/ComfyUI)** — reference implementation of the model
-- **[Viggle](https://huggingface.co/Viggle/Qwen-Image-2.1-viggle-turbo)** — turbo schedule
-- **[ComfyUI-DeGrid](https://github.com/lunaaispace-eng/ComfyUI-DeGrid)** by lunaaispace-eng — grid detection idea
+- **[ComfyUI](https://github.com/Comfy-Org/ComfyUI)** - reference implementation of the model
+- **[Viggle](https://huggingface.co/Viggle/Qwen-Image-2.1-viggle-turbo)** - turbo schedule
+- **[ComfyUI-DeGrid](https://github.com/lunaaispace-eng/ComfyUI-DeGrid)** by lunaaispace-eng - grid detection idea
 
 ---
 
 ## 📜 License
 
-AGPL-3.0 — see [LICENSE](LICENSE)
+AGPL-3.0 - see [LICENSE](LICENSE)
 
 ---
 
