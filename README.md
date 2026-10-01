@@ -67,12 +67,13 @@ Generate with **[Qwen-Image 2.1](https://huggingface.co/Qwen/Qwen-Image-2.1)** i
 - **Transparent background** checkbox in the **Qwen-Image 2.1** accordion
 - Write only the subject - the extension adds the wording the model expects
 - Saved as PNG with a real alpha channel; normal images stay exactly as before
+- Stray specks the model leaves in the background are cleared; the subject and its soft shadow are kept
 
 ### 🧼 Clean Output
 
 - **Remove VAE grid**, on by default, in the **Qwen-Image 2.1** accordion
 - Touches only the repeating pattern; real texture and edges are left alone
-- Images without the pattern pass through unchanged
+- Images without the pattern pass through unchanged, including those from a fine-tuned VAE that no longer leaves it
 
 ### 🔌 LoRA
 
@@ -110,6 +111,7 @@ Generate with **[Qwen-Image 2.1](https://huggingface.co/Qwen/Qwen-Image-2.1)** i
 | :--- | :--- | :--- | :--- | :--- |
 | **Turbo** | Euler | Viggle Turbo | 6-8 | 1 |
 | **Base** (non-turbo) | Euler or Res Multistep | Qwen Base, Simple or Beta | 16-25 | 2-3, with a negative prompt |
+| **Base** + turbo LoRA at weight 1 | Euler | Viggle Turbo | 6 | 1 |
 
 ---
 
@@ -118,6 +120,7 @@ Generate with **[Qwen-Image 2.1](https://huggingface.co/Qwen/Qwen-Image-2.1)** i
 - Keep **Diffusion in Low Bits** on *Automatic*
 - To keep **Viggle Turbo** after switching presets, set it in **Settings** → **Presets** → **QWEN21**
 - **Viggle Turbo** is for turbo checkpoints only - on a base checkpoint it leaves grain in fine detail such as hair, at any step count; use **Qwen Base** or **Simple** there
+- With CFG above 1, **Settings** → **Optimizations** → **Skip Negative Prompt during Later Steps** at 0.5, with **For the above option, skip every step** on, makes a base checkpoint about 12% faster with a near-identical image
 - Many style LoRAs are made for the base model - on a turbo checkpoint, try a higher weight (1.2-1.5) or use them with a base checkpoint
 - Use the trigger word a LoRA asks for
 - Transparent images need **PNG**; upscalers and face restoration remove the transparency
