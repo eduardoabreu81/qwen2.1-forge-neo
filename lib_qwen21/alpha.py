@@ -10,6 +10,10 @@ from .engine import QwenImage21Engine
 OPAQUE = 250
 # near-zero alpha is noise over undefined colour (faint specks in the background): cleared
 FLOOR = 6
+# the model also leaves small, nearly opaque islands of alpha in the background (4-190 px at 1 MP, against a subject
+# of hundreds of thousands): an island below both limits is cleared, so a picture made only of small pieces keeps them
+SPECK_AREA = 0.0003  # of the image
+SPECK_RATIO = 0.01  # of the largest island
 
 
 def is_qwen21(p) -> bool:
@@ -24,6 +28,23 @@ def requested(p) -> bool:
     if p.extra_generation_params.get("Transparent background", False):
         return True
     return any(m in str(getattr(p, "prompt", "")).lower() for m in MARKERS)
+
+
+def remove_specks(a: np.ndarray) -> np.ndarray:
+    try:
+        import cv2
+    except ImportError:
+        return a
+
+    count, labels, stats, _ = cv2.connectedComponentsWithStats((a > 0).astype(np.uint8), connectivity=8)
+    if count <= 2:
+        return a
+    areas = stats[1:, cv2.CC_STAT_AREA]
+    limit = min(SPECK_AREA * a.size, SPECK_RATIO * areas.max())
+    specks = np.flatnonzero(areas < limit) + 1
+    if specks.size == 0:
+        return a
+    return np.where(np.isin(labels, specks), 0, a).astype(np.uint8)
 
 
 def apply(p, image: Image.Image) -> Image.Image:
@@ -44,6 +65,7 @@ def apply(p, image: Image.Image) -> Image.Image:
         return image
 
     a[a < FLOOR] = 0
+    a = remove_specks(a)
     rgba = image.convert("RGBA")
     rgba.putalpha(Image.fromarray(a, mode="L"))
     return rgba
