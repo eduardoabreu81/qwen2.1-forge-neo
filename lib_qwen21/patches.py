@@ -143,7 +143,7 @@ def apply() -> None:
     try:
         scheduler.register()
     except Exception as e:
-        logger.warning(f"[Qwen-Image 2.1] could not add the {scheduler.LABEL} scheduler: {e}")
+        logger.warning(f"[Qwen-Image 2.1] could not add the {scheduler.LABEL} / {scheduler.BASE_LABEL} schedulers: {e}")
 
     try:
         presets.register()

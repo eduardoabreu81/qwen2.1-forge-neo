@@ -9,7 +9,7 @@ from modules_forge import presets
 PRESET = "qwen21"
 
 SAMPLER = "Euler"
-SCHEDULER = "Viggle Turbo"  # the Viggle turbo timesteps; a non-turbo checkpoint wants Simple, ~25 steps, CFG 3
+SCHEDULER = "Viggle Turbo"  # the Viggle turbo timesteps; a non-turbo checkpoint wants Qwen Base or Simple, 16-25 steps, CFG 2-3
 STEPS = 8
 CFG = 1.0
 

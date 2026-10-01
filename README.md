@@ -57,6 +57,11 @@ Generate with **[Qwen-Image 2.1](https://huggingface.co/Qwen/Qwen-Image-2.1)** i
 - Adapts the steps to the image size automatically
 - Works with any step count; 6–8 steps is the sweet spot
 
+### 🎛️ Base Checkpoints
+
+- **Qwen Base** schedule in the **Schedule type** list — the official schedule of the model, for base (non-turbo) checkpoints
+- Adapts to the image size automatically
+
 ### 🧊 Transparent Images
 
 - **Transparent background** checkbox in the **Qwen-Image 2.1** accordion
@@ -104,7 +109,7 @@ Generate with **[Qwen-Image 2.1](https://huggingface.co/Qwen/Qwen-Image-2.1)** i
 | Checkpoint | Sampler | Schedule type | Steps | CFG |
 | :--- | :--- | :--- | :--- | :--- |
 | **Turbo** | Euler | Viggle Turbo | 6–8 | 1 |
-| **Base** (non-turbo) | Euler or Res Multistep | Simple or Beta | ~25 | 3, with a negative prompt |
+| **Base** (non-turbo) | Euler or Res Multistep | Qwen Base, Simple or Beta | 16–25 | 2–3, with a negative prompt |
 
 ---
 
@@ -112,6 +117,7 @@ Generate with **[Qwen-Image 2.1](https://huggingface.co/Qwen/Qwen-Image-2.1)** i
 
 - Keep **Diffusion in Low Bits** on *Automatic*
 - To keep **Viggle Turbo** after switching presets, set it in **Settings** → **Presets** → **QWEN21**
+- **Viggle Turbo** is for turbo checkpoints only — on a base checkpoint it leaves grain in fine detail such as hair, at any step count; use **Qwen Base** or **Simple** there
 - Many style LoRAs are made for the base model — on a turbo checkpoint, try a higher weight (1.2–1.5) or use them with a base checkpoint
 - Use the trigger word a LoRA asks for
 - Transparent images need **PNG**; upscalers and face restoration remove the transparency
