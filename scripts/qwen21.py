@@ -11,6 +11,8 @@ from lib_qwen21 import compat
 
 ENABLED = False
 INFOTEXT_TRANSPARENT = "Transparent background"
+INFOTEXT_COMPUTE = "Qwen-Image 2.1 compute"
+INFOTEXT_DEGRID = "Qwen-Image 2.1 degrid"
 
 _problems = compat.check()
 
@@ -52,8 +54,9 @@ class Qwen21Script(scripts.Script):
     def ui(self, is_img2img):
         with gr.Accordion("Qwen-Image 2.1", open=False):
             transparent = gr.Checkbox(label="Transparent background (RGBA PNG)", value=False, elem_id=self.elem_id("transparent"))
-        self.infotext_fields = [(transparent, INFOTEXT_TRANSPARENT)]
-        return [transparent]
+            degrid = gr.Checkbox(label="Remove VAE grid (the 2- and 4-pixel pattern of the Qwen-Image 2.1 VAE)", value=True, elem_id=self.elem_id("degrid"))
+        self.infotext_fields = [(transparent, INFOTEXT_TRANSPARENT), (degrid, INFOTEXT_DEGRID)]
+        return [transparent, degrid]
 
     def before_process(self, p, *args):
         # a module that imported the LoRA key mapping after startup still holds the original
@@ -61,12 +64,22 @@ class Qwen21Script(scripts.Script):
 
         lora.hook()
 
-    def process(self, p, transparent=False, *args):
+    def process(self, p, transparent=False, degrid=True, *args):
         from lib_qwen21 import alpha, prompting
 
         if not alpha.is_qwen21(p):
             return
         _warn_discarded_sigma(p)
+        from lib_qwen21 import scheduler
+
+        if scheduler.is_selected(p) and p.sampler_noise_scheduler_override is None:
+            p.sampler_noise_scheduler_override = scheduler.override(p)
+        # the dtype the transformer actually computes in, so two images can be told apart
+        compute = getattr(p.sd_model.forge_objects.unet.model, "computation_dtype", None)
+        if compute is not None:
+            p.extra_generation_params[INFOTEXT_COMPUTE] = str(compute).replace("torch.", "")
+        if degrid:
+            p.extra_generation_params[INFOTEXT_DEGRID] = True
         if not transparent:
             return
         p.all_prompts = [prompting.transparent(x) for x in p.all_prompts]
@@ -74,7 +87,11 @@ class Qwen21Script(scripts.Script):
             p.all_hr_prompts = [prompting.transparent(x) for x in p.all_hr_prompts]
         p.extra_generation_params[INFOTEXT_TRANSPARENT] = True
 
-    def postprocess_image(self, p, pp, *args):
+    def postprocess_image(self, p, pp, transparent=False, degrid=True, *args):
         from lib_qwen21 import alpha
 
+        if degrid and alpha.is_qwen21(p):
+            from lib_qwen21 import degrid as grid
+
+            pp.image = grid.remove(pp.image)
         pp.image = alpha.apply(p, pp.image)

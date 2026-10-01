@@ -15,7 +15,7 @@ from backend.operations import using_forge_operations
 from backend.state_dict import load_state_dict
 from huggingface_guess import detection, model_list
 
-from . import lora, model, presets
+from . import lora, model, presets, scheduler, settings
 from .engine import QwenImage21Engine
 from .text_encoder import Qwen3VL8B
 from .vae import QwenImage21VAE
@@ -134,6 +134,16 @@ def apply() -> None:
     _hook_replace_state_dict()
     _hook_components()
     lora.hook()
+
+    try:
+        settings.register()
+    except Exception as e:
+        logger.warning(f"[Qwen-Image 2.1] could not add the settings: {e}")
+
+    try:
+        scheduler.register()
+    except Exception as e:
+        logger.warning(f"[Qwen-Image 2.1] could not add the {scheduler.LABEL} scheduler: {e}")
 
     try:
         presets.register()

@@ -26,6 +26,7 @@ REQUIRED = {
     "huggingface_guess.latent": ("LatentFormat",),
     "modules_forge.presets": ("PresetArch", "SAMPLERS", "SCHEDULERS", "STEPS", "CFG", "register"),
     "modules_forge.packages.comfy.lora": ("model_lora_keys_unet",),
+    "modules.options": ("OptionInfo", "options_section"),
 }
 
 # the transformer and the text encoder go through these branches of the loader

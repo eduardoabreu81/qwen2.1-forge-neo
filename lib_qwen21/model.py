@@ -87,8 +87,12 @@ class QwenImage21(BASE):
     unet_extra_config = {}
     latent_format = QwenImage21Latent
 
-    # ComfyUI lists only bf16 / fp32; fp16 is kept for GPUs without bf16, the blocks clip to the fp16 range
-    supported_inference_dtypes = [torch.bfloat16, torch.float16, torch.float32]
+    @property
+    def supported_inference_dtypes(self) -> list[torch.dtype]:
+        # read when the model loads: fp16 unless Settings ask for fp32 on GPUs without bf16
+        from .settings import inference_dtypes
+
+        return inference_dtypes()
 
     vae_key_prefix = ["vae."]
     text_encoder_key_prefix = ["text_encoders."]
