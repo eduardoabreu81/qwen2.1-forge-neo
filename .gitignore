@@ -5,3 +5,8 @@ __pycache__/
 *.ckpt
 .ruff_cache/
 .pytest_cache/
+
+# internal docs
+docs/
+AGENTS.md
+AGENTS.local.md
