@@ -1,16 +1,29 @@
 # Qwen-Image 2.1 support for Forge Neo
 # reference images for editing: one resize feeds both the vision encoder and the VAE (diffusers QwenImage21Pipeline)
 
+import base64
 import hashlib
+import io
 import math
 
 import numpy as np
 import torch
-from PIL import Image
+from PIL import Image, ImageOps
 
 RESOLUTION = 1024
 # one vision token covers 32x32 pixels, the 2x2 latent tokens of the VAE that take its place in the transformer
 MULTIPLE = 32
+
+
+def load(value) -> Image.Image | None:
+    # a gallery item is (image, caption) in the UI; through the API it arrives as base64, with or without a data: prefix
+    if isinstance(value, (tuple, list)):
+        value = value[0] if value else None
+    if value is None or isinstance(value, Image.Image):
+        return value
+    if isinstance(value, str) and value:
+        return Image.open(io.BytesIO(base64.b64decode(value.split(",", 1)[-1])))
+    return None
 
 
 def size(width: int, height: int, resolution: int = RESOLUTION) -> tuple[int, int]:
@@ -22,11 +35,12 @@ def size(width: int, height: int, resolution: int = RESOLUTION) -> tuple[int, in
 
 
 def resize(image: Image.Image, resolution: int = RESOLUTION) -> Image.Image:
+    # cropped, not stretched, to the multiples of 32: the edit keeps the reference's exact proportions
     image = image.convert("RGBA")
     target = size(*image.size, resolution)
     if image.size == target:
         return image
-    return image.resize(target, Image.Resampling.LANCZOS)
+    return ImageOps.fit(image, target, Image.Resampling.LANCZOS)
 
 
 def vae_input(image: Image.Image) -> torch.Tensor:

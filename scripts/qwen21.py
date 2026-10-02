@@ -13,7 +13,6 @@ ENABLED = False
 INFOTEXT_TRANSPARENT = "Transparent background"
 INFOTEXT_COMPUTE = "Qwen-Image 2.1 compute"
 INFOTEXT_DEGRID = "Qwen-Image 2.1 degrid"
-INFOTEXT_REFERENCES = "Qwen-Image 2.1 references"
 
 _problems = compat.check()
 
@@ -44,18 +43,6 @@ def _warn_discarded_sigma(p) -> None:
         print("[Qwen-Image 2.1] 'Always discard next-to-last sigma' is on: few-step (turbo) generations lose fine detail. It is under Settings > Sampler Parameters (visible with --adv-samplers).")
 
 
-def _set_references(p, use_reference: bool) -> None:
-    engine = p.sd_model
-    images = getattr(p, "init_images", None) or []
-    references = images[:1] if use_reference else []
-    # Forge caches the conditioning by prompt, which knows nothing of the references
-    if references or engine.references:
-        p.clear_prompt_cache()
-    engine.set_references(references)
-    if references:
-        p.extra_generation_params[INFOTEXT_REFERENCES] = len(references)
-
-
 class Qwen21Script(scripts.Script):
     # options for Qwen-Image 2.1; with any other model the script does nothing
     def title(self):
@@ -69,8 +56,10 @@ class Qwen21Script(scripts.Script):
             transparent = gr.Checkbox(label="Transparent background (RGBA PNG)", value=False, elem_id=self.elem_id("transparent"))
             degrid = gr.Checkbox(label="Remove VAE grid (the 2- and 4-pixel pattern of the Qwen-Image 2.1 VAE)", value=True, elem_id=self.elem_id("degrid"))
             controls = [transparent, degrid]
-            if is_img2img:
-                controls.append(gr.Checkbox(label="Use the input image as reference (editing, experimental)", value=False, elem_id=self.elem_id("reference")))
+            if ENABLED:
+                from lib_qwen21 import reference_ui
+
+                controls += reference_ui.build(self.elem_id, is_img2img)
         self.infotext_fields = [(transparent, INFOTEXT_TRANSPARENT), (degrid, INFOTEXT_DEGRID)]
         return controls
 
@@ -80,13 +69,13 @@ class Qwen21Script(scripts.Script):
 
         lora.hook()
 
-    def process(self, p, transparent=False, degrid=True, use_reference=False, *args):
-        from lib_qwen21 import alpha, prompting
+    def process(self, p, transparent=False, degrid=True, *args):
+        from lib_qwen21 import alpha, prompting, reference_ui
 
         if not alpha.is_qwen21(p):
             return
         _warn_discarded_sigma(p)
-        _set_references(p, use_reference)
+        reference_ui.apply(p, *reference_ui.collect(p, args, self.is_img2img))
         from lib_qwen21 import scheduler
 
         if scheduler.is_selected(p) and p.sampler_noise_scheduler_override is None:
@@ -103,6 +92,12 @@ class Qwen21Script(scripts.Script):
         if getattr(p, "all_hr_prompts", None):
             p.all_hr_prompts = [prompting.transparent(x) for x in p.all_hr_prompts]
         p.extra_generation_params[INFOTEXT_TRANSPARENT] = True
+
+    def before_process_init_images(self, p, pp, *args, **kwargs):
+        from lib_qwen21 import alpha, reference_ui
+
+        if alpha.is_qwen21(p) and p.sd_model.references:
+            reference_ui.crop_to_inpaint_area(p, pp.get("crop_region"))
 
     def process_before_every_sampling(self, p, *args, **kwargs):
         from lib_qwen21 import alpha, reference

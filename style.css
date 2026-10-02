@@ -1,0 +1,23 @@
+/* Qwen-Image 2.1: numbers the reference images in the ImageStitch Integrated gallery as the prompt names them;
+   in img2img the input image is image 1, so the gallery starts at 2 */
+#script_txt2img_imagestitch_integrated_ref_latent .grid-container { counter-reset: qwen21-reference 0; }
+#script_img2img_imagestitch_integrated_ref_latent .grid-container { counter-reset: qwen21-reference 1; }
+#script_txt2img_imagestitch_integrated_ref_latent .thumbnail-item,
+#script_img2img_imagestitch_integrated_ref_latent .thumbnail-item { counter-increment: qwen21-reference; }
+#script_txt2img_imagestitch_integrated_ref_latent .thumbnail-item::after,
+#script_img2img_imagestitch_integrated_ref_latent .thumbnail-item::after {
+    content: "<image" counter(qwen21-reference) ">";
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.7);
+    color: #fff;
+    font-size: 12px;
+    line-height: 18px;
+    pointer-events: none;
+}
+
+/* Qwen-Image 2.1 accordion: room between the note on reference images and the Reference size choice below it */
+.qwen21-note { margin: 4px 0 12px; }

@@ -77,11 +77,14 @@ class QwenImage21Engine(ForgeDiffusionEngine):
         # reference images of the current generation, resized; the vision encoder reads them with both the prompt
         # and the negative prompt, as the diffusers pipeline does
         self.references: list["Image.Image"] = []
+        # the images as given and their resolution, to set them again with one of them changed
+        self.reference_sources: tuple[list["Image.Image"], int] = ([], reference.RESOLUTION)
 
     @torch.inference_mode()
-    def set_references(self, images: list["Image.Image"]) -> None:
+    def set_references(self, images: list["Image.Image"], resolution: int = reference.RESOLUTION) -> None:
         # called by the script for every generation; one resize feeds both the vision encoder and the VAE
-        self.references = [reference.resize(image) for image in images]
+        self.references = [reference.resize(image, resolution) for image in images]
+        self.reference_sources = (list(images), resolution)
         diffusion_model = self.forge_objects.unet.model.diffusion_model
         diffusion_model.reference_latents = [self._encode_reference(image) for image in self.references]
         diffusion_model.image_slots = []

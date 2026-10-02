@@ -40,6 +40,7 @@ Generate with **[Qwen-Image 2.1](https://huggingface.co/Qwen/Qwen-Image-2.1)** i
 - **Remove VAE grid** - cleans the faint dot-and-stripe pattern the Qwen-Image 2.1 VAE leaves on smooth areas.
 - **LoRA support** - Qwen-Image 2.1 LoRAs with the usual `<lora:name:weight>` syntax.
 - **Image editing** - in img2img, describe the change and the model edits your image, keeping the rest of it.
+- **Multiple reference images** - up to 10, from Forge Neo's **ImageStitch Integrated** gallery, numbered on screen as `<image1>`, `<image2>`... for the prompt; in txt2img they make a new picture.
 
 ---
 
@@ -74,6 +75,32 @@ Generate with **[Qwen-Image 2.1](https://huggingface.co/Qwen/Qwen-Image-2.1)** i
 - Works with turbo and base checkpoints, at CFG 1, up to 2048x2048
 - The output size can differ from the input's - set a wider size to widen the picture
 - Any seed works, including the one that made the input image
+- **Reference size**: *1024x1024* (default) or *Same as the output*, which reads the references at the output size - a little more detail at 2K, and slower
+
+### 🧩 Multiple References
+
+<p align="center"><img src=".github/images/multi-reference.jpg" alt="Multiple reference examples: the reference images on the left, numbered as in the prompt, and the result on the right" width="720"></p>
+
+- Add the extra images to the **ImageStitch Integrated** gallery, which Forge Neo already has, and turn its accordion on
+- Each thumbnail shows its tag - name them in the prompt by it: *"the woman from `<image1>` in the raincoat from `<image2>`"*
+- **img2img** edits the input image, which is `<image1>`; the gallery starts at `<image2>`
+- **txt2img** makes a new picture from the gallery alone - people at a table, a character in a place, a logo on a product
+- Up to 10 references, the model's limit; each one adds about the work of a 1024x1024 image to every step, so more references mean slower generations and more VRAM
+
+### 🎯 Pose and Layout from a Picture
+
+- Any picture can steer the result, without a ControlNet model: a photo with the pose, an OpenPose skeleton or a Canny edge map
+- Make the skeleton or the edge map with Forge's own preprocessors in **ControlNet Integrated** (the preprocessor alone is enough), add it as a reference and name it: *"in exactly the body pose of the OpenPose skeleton in `<image2>`"*, *"following exactly the lines and layout of `<image1>`"*
+
+### 🖍️ More Edits
+
+<p align="center"><img src=".github/images/more-edits.jpg" alt="More edit examples: sketch marks, background removal, outpaint and pose and layout from a reference" width="720"></p>
+
+- **Sketch marks** - draw a colored box around each thing to change, then say what goes in each box and ask to remove the box outlines
+- **Inpaint** - the **Inpaint** tab works with the reference on, including **Only masked**; describe only the change and add *"Keep everything else exactly as it is"*
+- **Remove the background** - turn on **Transparent background** and write *"Remove the background, and output a PNG image"*
+- **Outpaint** - put the picture on a wider canvas with solid gray sides and ask to *"replace the solid gray areas with a seamless continuation of the scene"*
+- **Keep the frame in place** - a change of style can come back slightly bigger or shifted; the **[Consistency LoRA](https://huggingface.co/ausboss/Qwen-Image-2.1-Consistency-LoRA)** (`<lora:qwen-image-2.1-consistency:1>`) keeps the edit on the original's frame - on a watercolor test the edges lined up with the photo more than twice as closely
 
 ### 🧊 Transparent Images
 
@@ -81,12 +108,14 @@ Generate with **[Qwen-Image 2.1](https://huggingface.co/Qwen/Qwen-Image-2.1)** i
 - Write only the subject - the extension adds the wording the model expects
 - Saved as PNG with a real alpha channel; normal images stay exactly as before
 - Stray specks the model leaves in the background are cleared; the subject and its soft shadow are kept
+- Transparent pictures can be edited too: in img2img, with **Transparent background** and the reference on, the result keeps its transparency
 
 ### 🧼 Clean Output
 
 - **Remove VAE grid**, on by default, in the **Qwen-Image 2.1** accordion
 - Touches only the repeating pattern; real texture and edges are left alone
 - Images without the pattern pass through unchanged, including those from a fine-tuned VAE that no longer leaves it
+- For cleaner textures from the start, the **[Texture-Fix VAE](https://huggingface.co/madebyollin/texture-fix-vae-for-qwen-image-2.1)** (`texture_fix_vae_for_qwen_image_2.1_bf16.safetensors`, in `models/VAE`) works in place of the standard one: on a detailed photo it left 61% less grid, and transparent images keep their transparency
 
 ### 🔌 LoRA
 
@@ -140,7 +169,11 @@ For **image editing**, keep the settings of your checkpoint with **Denoising str
 - Use the trigger word a LoRA asks for
 - Transparent images need **PNG**; upscalers and face restoration remove the transparency
 - Before uninstalling, switch the UI preset to another one
-- Editing uses one input image; several reference images are not supported yet
+- Edit prompts work best as instructions: start with the verb (change, replace, add, remove), say what stays in one short sentence, and do not describe what stays - what you describe gets drawn again
+- Words that should appear in the picture go in quotes
+- People and objects on a plain background are the easiest to take from a reference
+- Use references of about 1000 px or more, with the subject filling the picture - small ones lose fine detail such as lettering; many "transparent" PNGs on the web have the checkerboard drawn in, so crop to the object first
+- Small lettering on a small or tilted object, such as the label of a can held in a hand, is the hardest case for the model
 
 ---
 
