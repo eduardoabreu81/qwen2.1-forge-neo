@@ -14,16 +14,29 @@ IM_START = 151644
 IMAGE_PAD = 151655
 
 
+class Qwen3VLClipModel(SDClipModel):
+    # remembers where the vision tokens of the last prompt landed, (start, length) per image
+    image_spans: list[tuple[int, int]] = []
+
+    def process_tokens(self, tokens, device):
+        embeds, attention_mask, num_tokens, embeds_info = super().process_tokens(tokens, device)
+        self.image_spans = [(e["index"], e["size"]) for e in embeds_info if e["type"] == "image"]
+        return embeds, attention_mask, num_tokens, embeds_info
+
+
 class Qwen3VL8BEngine:
     def __init__(self, text_encoder, tokenizer):
         # last layer without the final RMSNorm: transformers 4.57 hidden_states[-1], which Qwen's results are tuned to
-        self.text_encoder = SDClipModel(text_encoder, layer="hidden", layer_idx=-1, special_tokens={"pad": 151643}, layer_norm_hidden_state=False, enable_attention_masks=True, return_attention_masks=True)
+        self.text_encoder = Qwen3VLClipModel(text_encoder, layer="hidden", layer_idx=-1, special_tokens={"pad": 151643}, layer_norm_hidden_state=False, enable_attention_masks=True, return_attention_masks=True)
         self.tokenizer = SDTokenizer(tokenizer, pad_with_end=False, has_start_token=False, has_end_token=False, pad_to_max_length=False, max_length=INF, min_length=1, pad_token=151643)
 
         # Qwen-Image 2.1 keeps the reasoning turn: no empty <think> block is appended
         self.llama_template = "<|im_start|>system\nComprehend and analyze the provided prompt.<|im_end|>\n<|im_start|>user\n{}<|im_end|>\n<|im_start|>assistant\n"
 
         self.vision_block = "<|vision_start|><|image_pad|><|vision_end|>"
+
+        # where each reference goes in the conditioning of the last call; the transformer puts its latents there
+        self.image_slots: list[int] = []
 
     @property
     def emphasis(self) -> "emphasis.Emphasis":
@@ -38,6 +51,7 @@ class Qwen3VL8BEngine:
 
         zs: list[torch.Tensor] = []
         cache: dict[str, torch.Tensor] = {}
+        self.image_slots = []
 
         for line in texts:
             if line in cache:
@@ -45,12 +59,24 @@ class Qwen3VL8BEngine:
             else:
                 chunk = self._tokenize_with_weights(line, images)
                 cond = self.text_encoder.encode_token_weights(chunk)[0]
-                cond = cond[:, self._system_turn_length(chunk[0]) :]
+                cond, self.image_slots = self._drop_system_and_vision(cond, self._system_turn_length(chunk[0]), self.text_encoder.image_spans)
                 cache[line] = cond
 
             zs.extend(cond)  # (L, D) per prompt; the prompt parser stacks the batch
 
         return zs
+
+    def _drop_system_and_vision(self, cond: torch.Tensor, system_length: int, spans: list[tuple[int, int]]) -> tuple[torch.Tensor, list[int]]:
+        # the system turn goes (diffusers _drop_idx); so do the vision tokens, which the transformer replaces with the
+        # reference latents: what stays is where each image goes. The images come after the system turn, so its
+        # length counts tokens alone
+        keep = torch.ones(cond.shape[1], dtype=torch.bool)
+        keep[:system_length] = False
+        slots = []
+        for start, size in spans:
+            keep[start : start + size] = False
+            slots.append(int(keep[:start].sum()))
+        return cond[:, keep.to(cond.device)], slots
 
     @staticmethod
     def _system_turn_length(tok_pairs: list[tuple]) -> int:

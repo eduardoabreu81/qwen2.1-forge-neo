@@ -4,6 +4,8 @@
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from PIL import Image
+
     from modules.prompt_parser import SdConditioning
 
 import torch
@@ -15,6 +17,7 @@ from backend.patcher.clip import CLIP
 from backend.patcher.unet import UnetPatcher
 from backend.patcher.vae import VAE
 
+from . import reference
 from .model import QwenImage21
 from .text_engine import Qwen3VL8BEngine
 
@@ -71,6 +74,23 @@ class QwenImage21Engine(ForgeDiffusionEngine):
         # alpha of the last decoded batch, (B, 1, H, W) in [-1, 1]; applied to the saved images by the script
         self.last_alpha: torch.Tensor | None = None
 
+        # reference images of the current generation, resized; the vision encoder reads them with both the prompt
+        # and the negative prompt, as the diffusers pipeline does
+        self.references: list["Image.Image"] = []
+
+    @torch.inference_mode()
+    def set_references(self, images: list["Image.Image"]) -> None:
+        # called by the script for every generation; one resize feeds both the vision encoder and the VAE
+        self.references = [reference.resize(image) for image in images]
+        diffusion_model = self.forge_objects.unet.model.diffusion_model
+        diffusion_model.reference_latents = [self._encode_reference(image) for image in self.references]
+        diffusion_model.image_slots = []
+
+    def _encode_reference(self, image: "Image.Image") -> torch.Tensor:
+        # normalized like the target latents (diffusers _encode_vae_image)
+        vae = self.forge_objects.vae
+        return vae.first_stage_model.process_in(vae.encode(reference.vae_input(image))).cpu()
+
     @torch.inference_mode()
     def decode_first_stage(self, x: torch.Tensor):
         vae_model = self.forge_objects.vae.first_stage_model
@@ -90,7 +110,11 @@ class QwenImage21Engine(ForgeDiffusionEngine):
     @torch.inference_mode()
     def get_learned_conditioning(self, prompt: "SdConditioning"):
         memory_management.load_model_gpu(self.forge_objects.clip.patcher)
-        return self.text_processing_engine_qwen(prompt)
+        images = [reference.vision_input(image) for image in self.references]
+        cond = self.text_processing_engine_qwen(prompt, images=images)
+        # the same for the prompt and the negative prompt: the images come before either text
+        self.forge_objects.unet.model.diffusion_model.image_slots = self.text_processing_engine_qwen.image_slots
+        return cond
 
     @torch.inference_mode()
     def get_prompt_lengths_on_ui(self, prompt: str) -> tuple[int, int]:

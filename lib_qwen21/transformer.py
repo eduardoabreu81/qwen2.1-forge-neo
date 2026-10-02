@@ -97,25 +97,29 @@ class Attention(nn.Module):
         self.norm_q = RMSNorm(dim_head, eps=eps)
         self.norm_k = RMSNorm(dim_head, eps=eps)
 
-    def forward(self, x: torch.Tensor, pe: torch.Tensor, prefix_len: int, transformer_options={}) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, pe: torch.Tensor, segments: list[tuple[int, int, bool]], transformer_options={}) -> torch.Tensor:
         B, N, _ = x.shape
         q = self.to_q(x).view(B, N, self.heads, -1).transpose(1, 2)
         k = self.to_k(x).view(B, N, self.heads, -1).transpose(1, 2)
         v = self.to_v(x).view(B, N, self.heads, -1).transpose(1, 2)
         q, k = self.norm_q(q), self.norm_k(k)
         q, k = ck.apply_rope(q, k, pe)
-        return self.to_out[0](block_causal_attention(q, k, v, self.heads, prefix_len, transformer_options))
+        return self.to_out[0](block_causal_attention(q, k, v, self.heads, segments, transformer_options))
 
 
-def block_causal_attention(q: torch.Tensor, k: torch.Tensor, v: torch.Tensor, heads: int, prefix_len: int, transformer_options={}) -> torch.Tensor:
-    # (B, H, N, D); the text prefix attends causally to itself, the image attends to everything
+def block_causal_attention(q: torch.Tensor, k: torch.Tensor, v: torch.Tensor, heads: int, segments: list[tuple[int, int, bool]], transformer_options={}) -> torch.Tensor:
+    # (B, H, N, D); segments are (start, end, is_text): text attends causally, an image block (a reference or the
+    # target) attends to everything up to its own end
     B, H, N, D = q.shape
-    image = attention_function(q[:, :, prefix_len:], k, v, heads, skip_reshape=True, transformer_options=transformer_options)
-    if prefix_len == 0:
-        return image
-    text = F.scaled_dot_product_attention(q[:, :, :prefix_len], k[:, :, :prefix_len], v[:, :, :prefix_len], is_causal=True)
-    text = text.transpose(1, 2).reshape(B, prefix_len, H * D)
-    return torch.cat((text, image), dim=1)
+    outs = []
+    for start, end, is_text in segments:
+        if not is_text:
+            outs.append(attention_function(q[:, :, start:end], k[:, :, :end], v[:, :, :end], heads, skip_reshape=True, transformer_options=transformer_options))
+            continue
+        mask = None if start == 0 else torch.ones((end - start, end), dtype=torch.bool, device=q.device).tril(start)
+        text = F.scaled_dot_product_attention(q[:, :, start:end], k[:, :, :end], v[:, :, :end], attn_mask=mask, is_causal=mask is None)
+        outs.append(text.transpose(1, 2).reshape(B, end - start, H * D))
+    return torch.cat(outs, dim=1) if len(outs) > 1 else outs[0]
 
 
 def _split_rows(p: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
@@ -142,9 +146,9 @@ class QwenImage21TransformerBlock(nn.Module):
         self.img_norm2 = nn.LayerNorm(dim, elementwise_affine=False, eps=eps)
         self.img_mlp = SwiGLUFeedForward(dim, dim * mlp_ratio, fused=fused_mlp)
 
-    def forward(self, x: torch.Tensor, mod: tuple, pe: torch.Tensor, prefix_len: int, transformer_options={}) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, mod: tuple, pe: torch.Tensor, prefix_len: int, segments: list[tuple[int, int, bool]], transformer_options={}) -> torch.Tensor:
         scale1, gate1, scale2, gate2 = mod
-        x = _gated_residual(x, self.attn(_modulated_norm(self.img_norm1, x, scale1, prefix_len), pe, prefix_len, transformer_options), gate1, prefix_len)
+        x = _gated_residual(x, self.attn(_modulated_norm(self.img_norm1, x, scale1, prefix_len), pe, segments, transformer_options), gate1, prefix_len)
         x = _gated_residual(x, self.img_mlp(_modulated_norm(self.img_norm2, x, scale2, prefix_len)), gate2, prefix_len)
         if x.dtype == torch.float16:
             x = x.clip(-65504, 65504)
@@ -195,27 +199,53 @@ class QwenImage21Transformer2DModel(nn.Module):
         self.norm_out = LastLayer(self.inner_dim, eps=eps)
         self.proj_out = nn.Linear(self.inner_dim, out_channels, bias=False)
 
-    def build_sequence(self, x: torch.Tensor, context: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor, int]:
-        # text first, target image last
+        # set by the engine for each generation: normalized reference latents (1, C, h, w) and, for each, the
+        # position in the conditioning where the vision encoder saw it
+        self.reference_latents: list[torch.Tensor] = []
+        self.image_slots: list[int] = []
+
+    @staticmethod
+    def _image_ids(h: int, w: int, pos: int, target_hw: tuple[int, int], device) -> torch.Tensor:
+        # centred grid; half a token where a reference grid has the other parity, so it centres on the target
+        hh = torch.arange(h, device=device, dtype=torch.float32) - (h - h // 2) + 0.5 * (h % 2 - target_hw[0] % 2)
+        ww = torch.arange(w, device=device, dtype=torch.float32) - (w - w // 2) + 0.5 * (w % 2 - target_hw[1] % 2)
+        return torch.stack((torch.full((h, w), pos, device=device, dtype=torch.float32), hh[:, None].expand(h, w), ww[None, :].expand(h, w)), dim=-1).flatten(0, 1)
+
+    def build_sequence(self, x: torch.Tensor, context: torch.Tensor, refs: list[torch.Tensor], slots: list[int]) -> tuple[torch.Tensor, torch.Tensor, list[tuple[int, int, bool]]]:
+        # text with each reference spliced in at its slot, target image last
         txt = self.txt_in(context)
-        n = txt.shape[1]
-        h, w = x.shape[-2:]
-        device = x.device
+        n_txt = txt.shape[1]
+        slots = (list(slots) + [n_txt] * len(refs))[: len(refs)]
+        bounds = [0, *slots, n_txt]
 
-        txt_ids = torch.arange(n, device=device, dtype=torch.float32).unsqueeze(1).expand(n, 3)
-        hh = torch.arange(h, device=device, dtype=torch.float32) - (h - h // 2)
-        ww = torch.arange(w, device=device, dtype=torch.float32) - (w - w // 2)
-        img_ids = torch.stack((torch.full((h, w), n, device=device, dtype=torch.float32), hh[:, None].expand(h, w), ww[None, :].expand(h, w)), dim=-1).flatten(0, 1)
+        parts, ids, segments = [], [], []
+        pos, length = 0, 0
+        for start, end, img in zip(bounds[:-1], bounds[1:], [*refs, x]):
+            n = end - start
+            if n > 0:
+                parts.append(txt[:, start:end])
+                ids.append(torch.arange(pos, pos + n, device=x.device, dtype=torch.float32).unsqueeze(1).expand(n, 3))
+                segments.append((length, length + n, True))
+                pos += n
+                length += n
+            h, w = img.shape[-2:]
+            parts.append(self.img_in(img.flatten(2).transpose(1, 2)))
+            ids.append(self._image_ids(h, w, pos, x.shape[-2:], x.device))
+            segments.append((length, length + h * w, False))
+            pos += max(h, w)
+            length += h * w
 
-        img = self.img_in(x.flatten(2).transpose(1, 2))
-        pe = self.pe_embedder(torch.cat((txt_ids, img_ids), dim=0).unsqueeze(0))
-        return torch.cat((txt, img), dim=1), pe, n
+        pe = self.pe_embedder(torch.cat(ids, dim=0).unsqueeze(0))
+        return torch.cat(parts, dim=1), pe, segments
 
     def forward(self, x: torch.Tensor, timesteps: torch.Tensor, context: torch.Tensor, transformer_options={}, **kwargs) -> torch.Tensor:
         B, C, H, W = x.shape
         dtype = x.dtype
 
-        hidden_states, pe, prefix_len = self.build_sequence(x, context.to(dtype))
+        refs = [r.to(device=x.device, dtype=dtype).expand(B, -1, -1, -1) for r in self.reference_latents]
+        hidden_states, pe, segments = self.build_sequence(x, context.to(dtype), refs, self.image_slots)
+        # text and references: modulated from t = 0, attended to block-causally, never denoised
+        prefix_len = hidden_states.shape[1] - H * W
 
         # the pipeline rounds t*1000 and t to the compute dtype; text tokens modulate from t = 0
         t = ((timesteps * 1000).to(dtype) / 1000).to(dtype)
@@ -224,7 +254,7 @@ class QwenImage21Transformer2DModel(nn.Module):
         mod = (_split_rows(scale1), _split_rows(gate1.tanh()), _split_rows(scale2), _split_rows(gate2.tanh()))
 
         for block in self.transformer_blocks:
-            hidden_states = block(hidden_states, mod, pe, prefix_len, transformer_options=transformer_options)
+            hidden_states = block(hidden_states, mod, pe, prefix_len, segments, transformer_options=transformer_options)
 
         hidden_states = self.norm_out(hidden_states[:, prefix_len:], temb[:-1])
         hidden_states = self.proj_out(hidden_states)

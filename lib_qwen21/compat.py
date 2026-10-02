@@ -9,7 +9,8 @@ import inspect
 REQUIRED = {
     "backend.text_processing._comfy": ("SDClipModel", "SDTokenizer", "INF", "EMBEDDINGS", "TOKEN_WEIGHTS"),
     "backend.text_processing.emphasis": ("EmphasisNone", "uses_emphasis"),
-    "backend.nn.llm.llama": ("Qwen3VL", "Qwen3VL_4BConfig", "Llama2_"),
+    "backend.nn.llm.llama": ("Qwen3VL", "Qwen3VL_4BConfig", "Llama2_", "attention_function"),
+    "backend.nn.llm.qwen_vl": ("process_qwen2vl_images", "qwen2vl_mrope_position_ids"),
     "backend.nn.llm.qwen35": ("QWEN3VL_VISION", "Qwen3VLVisionModel"),
     "backend.nn.krea": ("SingleStreamDiT",),
     "backend.nn.flux": ("EmbedND", "timestep_embedding"),
@@ -27,6 +28,13 @@ REQUIRED = {
     "modules_forge.presets": ("PresetArch", "SAMPLERS", "SCHEDULERS", "STEPS", "CFG", "register"),
     "modules_forge.packages.comfy.lora": ("model_lora_keys_unet",),
     "modules.options": ("OptionInfo", "options_section"),
+    "modules.processing": ("StableDiffusionProcessing",),
+}
+
+# methods the extension calls on Forge Neo classes, by module and class
+REQUIRED_METHODS = {
+    ("backend.nn.llm.llama", "Qwen3VL"): ("preprocess_embed", "build_image_inputs"),
+    ("modules.processing", "StableDiffusionProcessing"): ("clear_prompt_cache",),
 }
 
 # the transformer and the text encoder go through these branches of the loader
@@ -57,6 +65,12 @@ def check() -> list[str]:
             problems.append(f"{module_name} is missing {', '.join(missing)}")
 
     if not problems:
+        for (module_name, class_name), names in REQUIRED_METHODS.items():
+            cls = getattr(importlib.import_module(module_name), class_name)
+            missing = [n for n in names if not hasattr(cls, n)]
+            if missing:
+                problems.append(f"{module_name}.{class_name} is missing {', '.join(missing)}")
+
         from backend import loader
         from backend.quant_ops import QUANT_ALGOS, ck
 

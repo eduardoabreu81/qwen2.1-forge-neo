@@ -11,7 +11,7 @@
 
 </div>
 
-Generate with **[Qwen-Image 2.1](https://huggingface.co/Qwen/Qwen-Image-2.1)** inside Forge Neo, using the checkpoint, preset and Generate button you already know - sharp text rendering, coherent scenes, transparent images and fast turbo checkpoints, even on 8 GB GPUs.
+Generate with **[Qwen-Image 2.1](https://huggingface.co/Qwen/Qwen-Image-2.1)** inside Forge Neo, using the checkpoint, preset and Generate button you already know - sharp text rendering, coherent scenes, image editing, transparent images and fast turbo checkpoints, even on 8 GB GPUs.
 
 > [!Important]
 > This extension requires an up-to-date **Forge Neo** (the `neo` branch, updated on or after 30 September 2026). On an older version it stays disabled and tells you so in the console - Forge Neo itself keeps working as usual.
@@ -39,6 +39,7 @@ Generate with **[Qwen-Image 2.1](https://huggingface.co/Qwen/Qwen-Image-2.1)** i
 - **Transparent background** - one checkbox, and the image is saved as a PNG with real transparency.
 - **Remove VAE grid** - cleans the faint dot-and-stripe pattern the Qwen-Image 2.1 VAE leaves on smooth areas.
 - **LoRA support** - Qwen-Image 2.1 LoRAs with the usual `<lora:name:weight>` syntax.
+- **Image editing** - in img2img, describe the change and the model edits your image, keeping the rest of it.
 
 ---
 
@@ -61,6 +62,15 @@ Generate with **[Qwen-Image 2.1](https://huggingface.co/Qwen/Qwen-Image-2.1)** i
 
 - **Qwen Base** schedule in the **Schedule type** list - the official schedule of the model, for base (non-turbo) checkpoints
 - Adapts to the image size automatically
+
+### ✏️ Image Editing
+
+- **Use the input image as reference** checkbox in the **Qwen-Image 2.1** accordion of img2img
+- Write the change as an instruction - *"Change her t-shirt to a black leather jacket"*, *"Replace the background with a city street at sunset"*
+- Clothes, colors, hair, objects, characters, backgrounds, weather and time of day
+- Keeps the pose, face, light and composition of the parts you did not ask to change
+- Works with turbo and base checkpoints, at CFG 1, up to 2048x2048
+- Any seed works, including the one that made the input image
 
 ### 🧊 Transparent Images
 
@@ -113,6 +123,8 @@ Generate with **[Qwen-Image 2.1](https://huggingface.co/Qwen/Qwen-Image-2.1)** i
 | **Base** (non-turbo) | Euler or Res Multistep | Qwen Base, Simple or Beta | 16-25 | 2-3, with a negative prompt |
 | **Base** + turbo LoRA at weight 1 | Euler | Viggle Turbo | 6 | 1 |
 
+For **image editing**, keep the settings of your checkpoint with **Denoising strength** at 1; CFG 1 is enough on base checkpoints too.
+
 ---
 
 ## 💡 Tips
@@ -125,8 +137,7 @@ Generate with **[Qwen-Image 2.1](https://huggingface.co/Qwen/Qwen-Image-2.1)** i
 - Use the trigger word a LoRA asks for
 - Transparent images need **PNG**; upscalers and face restoration remove the transparency
 - Before uninstalling, switch the UI preset to another one
-
-**Not supported yet:** image editing with reference images.
+- Editing uses one input image; several reference images are not supported yet
 
 ---
 
@@ -135,6 +146,7 @@ Generate with **[Qwen-Image 2.1](https://huggingface.co/Qwen/Qwen-Image-2.1)** i
 - **[Forge Neo](https://github.com/Haoming02/sd-webui-forge-classic/tree/neo)** by Haoming02
 - **[Qwen-Image 2.1](https://huggingface.co/Qwen/Qwen-Image-2.1)** by the Qwen team
 - **[ComfyUI](https://github.com/Comfy-Org/ComfyUI)** - reference implementation of the model
+- **[Diffusers](https://github.com/huggingface/diffusers)** - reference implementation of image editing
 - **[Viggle](https://huggingface.co/Viggle/Qwen-Image-2.1-viggle-turbo)** - turbo schedule
 - **[ComfyUI-DeGrid](https://github.com/lunaaispace-eng/ComfyUI-DeGrid)** by lunaaispace-eng - grid detection idea
 
