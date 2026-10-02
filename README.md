@@ -65,6 +65,8 @@ Generate with **[Qwen-Image 2.1](https://huggingface.co/Qwen/Qwen-Image-2.1)** i
 
 ### ✏️ Image Editing
 
+<p align="center"><img src=".github/images/edit-showcase.jpg" alt="Image editing examples: an original image on the left of each row, followed by three edits made from it" width="720"></p>
+
 - **Use the input image as reference** checkbox in the **Qwen-Image 2.1** accordion of img2img
 - Write the change as an instruction - *"Change her t-shirt to a black leather jacket"*, *"Replace the background with a city street at sunset"*
 - Clothes, colors, hair, objects, characters, backgrounds, weather and time of day
