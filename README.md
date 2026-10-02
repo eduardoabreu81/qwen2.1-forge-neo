@@ -70,6 +70,7 @@ Generate with **[Qwen-Image 2.1](https://huggingface.co/Qwen/Qwen-Image-2.1)** i
 - Clothes, colors, hair, objects, characters, backgrounds, weather and time of day
 - Keeps the pose, face, light and composition of the parts you did not ask to change
 - Works with turbo and base checkpoints, at CFG 1, up to 2048x2048
+- The output size can differ from the input's - set a wider size to widen the picture
 - Any seed works, including the one that made the input image
 
 ### 🧊 Transparent Images
