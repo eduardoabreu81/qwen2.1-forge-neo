@@ -46,6 +46,9 @@ Generate with **[Qwen-Image 2.1](https://huggingface.co/Qwen/Qwen-Image-2.1)** i
 
 ## 🎯 Features
 
+> [!Tip]
+> Every example below, in full resolution and with its prompt and settings, is in the **[wiki](https://github.com/eduardoabreu81/qwen2.1-forge-neo/wiki)**.
+
 ### 🖼️ Native Generation
 
 - Runs inside txt2img - no separate tab, no extra environment
@@ -101,6 +104,19 @@ Generate with **[Qwen-Image 2.1](https://huggingface.co/Qwen/Qwen-Image-2.1)** i
 - **Remove the background** - turn on **Transparent background** and write *"Remove the background, and output a PNG image"*
 - **Outpaint** - put the picture on a wider canvas with solid gray sides and ask to *"replace the solid gray areas with a seamless continuation of the scene"*
 - **Keep the frame in place** - a change of style can come back slightly bigger or shifted; the **[Consistency LoRA](https://huggingface.co/ausboss/Qwen-Image-2.1-Consistency-LoRA)** (`<lora:qwen-image-2.1-consistency:1>`) keeps the edit on the original's frame - on a watercolor test the edges lined up with the photo more than twice as closely
+
+### 🧍 Character Sheets
+
+<p align="center"><img src=".github/images/character-sheet.jpg" alt="A character design sheet made from one chest-up portrait: name and palette, hero view, front, side and back views, expressions and detail close-ups" width="720"></p>
+
+- img2img with the character as `<image1>`, a wide size such as 1376x768 and **Denoising strength** at 1
+- Three views from a single picture, even a chest-up portrait - the model draws the rest of the body:
+
+```text
+A character sheet of the character from <image1>, full body from head to feet, standing in a relaxed neutral pose, lit brightly and evenly. Three views side by side in one row, all at the same size, from left to right: front view facing the viewer, side view in profile facing right, back view seen from behind. Keep the same face, hairstyle, clothing, colors, proportions and art style as in <image1>.
+```
+
+- A full design sheet, like the one above, comes from a longer prompt that lays out each zone - name, palette, hero view, turnaround, expressions, close-ups - at about 3.4 MP; the prompt is in the [wiki](https://github.com/eduardoabreu81/qwen2.1-forge-neo/wiki/Character-Sheets)
 
 ### 🧊 Transparent Images
 
@@ -183,6 +199,7 @@ For **image editing**, keep the settings of your checkpoint with **Denoising str
 - **[Qwen-Image 2.1](https://huggingface.co/Qwen/Qwen-Image-2.1)** by the Qwen team
 - **[ComfyUI](https://github.com/Comfy-Org/ComfyUI)** - reference implementation of the model
 - **[Diffusers](https://github.com/huggingface/diffusers)** - reference implementation of image editing
+- **Pixaroma** - the tested editing recipes of their Qwen-Image 2.1 ComfyUI workflows, including the character sheet prompt
 - **[Viggle](https://huggingface.co/Viggle/Qwen-Image-2.1-viggle-turbo)** - turbo schedule
 - **[ComfyUI-DeGrid](https://github.com/lunaaispace-eng/ComfyUI-DeGrid)** by lunaaispace-eng - grid detection idea
 
