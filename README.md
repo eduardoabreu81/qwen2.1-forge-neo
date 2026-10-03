@@ -199,7 +199,7 @@ For **image editing**, keep the settings of your checkpoint with **Denoising str
 - **[Qwen-Image 2.1](https://huggingface.co/Qwen/Qwen-Image-2.1)** by the Qwen team
 - **[ComfyUI](https://github.com/Comfy-Org/ComfyUI)** - reference implementation of the model
 - **[Diffusers](https://github.com/huggingface/diffusers)** - reference implementation of image editing
-- **Pixaroma** - the tested editing recipes of their Qwen-Image 2.1 ComfyUI workflows, including the character sheet prompt
+- **[Pixaroma](https://www.youtube.com/@pixaroma)** - the tested editing recipes of their Qwen-Image 2.1 ComfyUI workflows, including the character sheet prompt
 - **[Viggle](https://huggingface.co/Viggle/Qwen-Image-2.1-viggle-turbo)** - turbo schedule
 - **[ComfyUI-DeGrid](https://github.com/lunaaispace-eng/ComfyUI-DeGrid)** by lunaaispace-eng - grid detection idea
 
