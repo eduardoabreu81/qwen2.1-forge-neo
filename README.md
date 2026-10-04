@@ -4,7 +4,7 @@
 
 [![Forge Neo](https://img.shields.io/badge/Forge-Neo-blue)](https://github.com/Haoming02/sd-webui-forge-classic/tree/neo)
 [![Gradio](https://img.shields.io/badge/Gradio-4.40.0-orange)](https://gradio.app/)
-[![Version](https://img.shields.io/badge/Version-0.1.0-brightgreen)](https://github.com/eduardoabreu81/qwen2.1-forge-neo)
+[![Version](https://img.shields.io/badge/Version-0.2.0-brightgreen)](https://github.com/eduardoabreu81/qwen2.1-forge-neo)
 [![License](https://img.shields.io/badge/License-AGPL--3.0-green.svg)](LICENSE)
 
 > **Extension for [Stable Diffusion WebUI Forge - Neo](https://github.com/Haoming02/sd-webui-forge-classic/tree/neo)**
@@ -16,10 +16,31 @@ Generate with **[Qwen-Image 2.1](https://huggingface.co/Qwen/Qwen-Image-2.1)** i
 > [!Important]
 > This extension requires an up-to-date **Forge Neo** (the `neo` branch, updated on or after 30 September 2026). On an older version it stays disabled and tells you so in the console - Forge Neo itself keeps working as usual.
 
+> [!Note]
+> **Native support is on its way.** Forge Neo is getting Qwen-Image 2.1 support of its own ([PR #1512](https://github.com/Haoming02/sd-webui-forge-classic/pull/1512)). The extension is ready for it: on a Forge Neo that loads the model by itself, it leaves the model, the LoRAs and the reference images to Forge Neo and keeps adding what the native support does not have. See [Extension and Native Support](#-extension-and-native-support).
+
+---
+
+## 🔀 Extension and Native Support
+
+| | Forge Neo native support | With this extension |
+| :--- | :--- | :--- |
+| Model, text encoder, VAE, LoRAs | ✅ | ✅ (left to Forge Neo when it has native support) |
+| Image editing and up to 10 references | ✅ on or off for all of img2img, in **Settings** | ✅ (left to Forge Neo when it has native support) |
+| **Viggle Turbo** and **Qwen Base** schedules | - | ✅ |
+| **Remove VAE grid** | - | ✅ |
+| **Transparent background** checkbox | Write the RGBA wording yourself | ✅ adds the wording and clears stray specks |
+| Edits with the seed that made the input image | The model may barely change it | ✅ the noise is reshuffled, so the edit happens |
+| Transformer on GPUs without bf16 (RTX 20xx, GTX 16xx) | fp32 | ✅ fp16, faster and lighter |
+| VAE on GPUs without bf16 (RTX 20xx, GTX 16xx) | Several minutes per image on an RTX 2070 | ✅ a few seconds: fp16 and 2D convolutions |
+
+On a Forge Neo without native support, the extension does it all by itself, as described below.
+
 ---
 
 ## 📋 Table of Contents
 
+- [Extension and Native Support](#-extension-and-native-support)
 - [What's New](#-whats-new)
 - [Features](#-features)
 - [Installation](#-installation)
@@ -30,6 +51,10 @@ Generate with **[Qwen-Image 2.1](https://huggingface.co/Qwen/Qwen-Image-2.1)** i
 ---
 
 ## 🆕 What's New
+
+### v0.2.0 - Ready for Native Support
+
+- **Works alongside Forge Neo's native Qwen-Image 2.1 support** - when Forge Neo loads the model by itself, the extension steps aside and keeps its schedules, VAE grid removal, transparent background, same-seed edit fix, fp16 compute and fast VAE decoding on older GPUs (an RTX 2070 went from about 7 minutes to under a minute per image).
 
 ### v0.1.0 - First Release
 
@@ -141,6 +166,7 @@ A character sheet of the character from <image1>, full body from head to feet, s
 
 - Changes no Forge Neo file - remove the extension and everything is as it was
 - Checks your Forge Neo at startup and stays disabled if something it needs is missing
+- Ready for native support: on a Forge Neo that loads Qwen-Image 2.1 by itself, the extension leaves the model to Forge Neo and adds only its schedules, VAE grid removal, transparent background and edit noise fix
 - Other models are not affected
 
 ---

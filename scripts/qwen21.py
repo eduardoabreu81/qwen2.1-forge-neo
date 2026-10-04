@@ -7,26 +7,38 @@ import gradio as gr
 
 import modules.scripts as scripts
 
-from lib_qwen21 import compat
+from lib_qwen21 import compat, native
 
 ENABLED = False
 INFOTEXT_TRANSPARENT = "Transparent background"
 INFOTEXT_COMPUTE = "Qwen-Image 2.1 compute"
 INFOTEXT_DEGRID = "Qwen-Image 2.1 degrid"
 
-_problems = compat.check()
 
-if _problems:
-    compat.report(_problems)
-else:
-    try:
-        from lib_qwen21 import patches
+def _enable() -> None:
+    # a Forge Neo that loads the model itself keeps doing so: the extension then adds only its extras
+    global ENABLED
+    if native.available():
+        native.apply()
+        native.ACTIVE = ENABLED = True
+        return
 
-        patches.apply()
-        ENABLED = True
-    except Exception:
-        print("[Qwen-Image 2.1] failed to enable, Forge Neo is unchanged:")
-        traceback.print_exc()
+    problems = compat.check()
+    if problems:
+        compat.report(problems)
+        return
+
+    from lib_qwen21 import patches
+
+    patches.apply()
+    ENABLED = True
+
+
+try:
+    _enable()
+except Exception:
+    print("[Qwen-Image 2.1] failed to enable, Forge Neo is unchanged:")
+    traceback.print_exc()
 
 
 _warned_sigma = False
@@ -65,6 +77,8 @@ class Qwen21Script(scripts.Script):
 
     def before_process(self, p, *args):
         # a module that imported the LoRA key mapping after startup still holds the original
+        if native.ACTIVE:
+            return
         from lib_qwen21 import lora
 
         lora.hook()
@@ -75,7 +89,8 @@ class Qwen21Script(scripts.Script):
         if not alpha.is_qwen21(p):
             return
         _warn_discarded_sigma(p)
-        reference_ui.apply(p, *reference_ui.collect(p, args, self.is_img2img))
+        if not native.ACTIVE:
+            reference_ui.apply(p, *reference_ui.collect(p, args, self.is_img2img))
         from lib_qwen21 import scheduler
 
         if scheduler.is_selected(p) and p.sampler_noise_scheduler_override is None:
@@ -96,16 +111,20 @@ class Qwen21Script(scripts.Script):
     def before_process_init_images(self, p, pp, *args, **kwargs):
         from lib_qwen21 import alpha, reference_ui
 
-        if alpha.is_qwen21(p) and p.sd_model.references:
+        # Forge Neo's own support encodes the cropped area as the reference already
+        if not native.ACTIVE and alpha.is_qwen21(p) and p.sd_model.references:
             reference_ui.crop_to_inpaint_area(p, pp.get("crop_region"))
 
     def process_before_every_sampling(self, p, *args, **kwargs):
-        from lib_qwen21 import alpha, reference
+        from lib_qwen21 import alpha, reference, reference_ui
 
-        if not alpha.is_qwen21(p) or not p.sd_model.references:
+        if not alpha.is_qwen21(p):
+            return
+        images = native.reference_images(p, reference_ui.gallery(p)) if native.ACTIVE else p.sd_model.references
+        if not images:
             return
         noise = p.modified_noise if getattr(p, "modified_noise", None) is not None else kwargs["noise"]
-        p.modified_noise = reference.decorrelate(noise, p.sd_model.references)
+        p.modified_noise = reference.decorrelate(noise, images)
 
     def postprocess_image(self, p, pp, transparent=False, degrid=True, *args):
         from lib_qwen21 import alpha

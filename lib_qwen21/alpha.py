@@ -4,7 +4,7 @@
 import numpy as np
 from PIL import Image
 
-from .engine import QwenImage21Engine
+from . import native
 
 # an image whose alpha never drops below this stays RGB, exactly as before
 OPAQUE = 250
@@ -17,6 +17,10 @@ SPECK_RATIO = 0.01  # of the largest island
 
 
 def is_qwen21(p) -> bool:
+    if native.ACTIVE:
+        return isinstance(getattr(p, "sd_model", None), native.engines())
+    from .engine import QwenImage21Engine
+
     return isinstance(getattr(p, "sd_model", None), QwenImage21Engine)
 
 
@@ -47,8 +51,33 @@ def remove_specks(a: np.ndarray) -> np.ndarray:
     return np.where(np.isin(labels, specks), 0, a).astype(np.uint8)
 
 
+def _clean(a: np.ndarray) -> np.ndarray | None:
+    # None for an opaque image, which stays RGB
+    if int(a.min()) >= OPAQUE:
+        return None
+    a = a.copy()
+    a[a < FLOOR] = 0
+    return remove_specks(a)
+
+
+def _apply_native(p, image: Image.Image) -> Image.Image:
+    # Forge Neo decodes the four channels into every image: one nobody asked to be transparent is saved as RGB
+    if image.mode != "RGBA":
+        return image
+    a = _clean(np.asarray(image.getchannel("A"))) if requested(p) else None
+    if a is None:
+        return image.convert("RGB")
+    rgba = image.copy()
+    rgba.putalpha(Image.fromarray(a, mode="L"))
+    return rgba
+
+
 def apply(p, image: Image.Image) -> Image.Image:
-    if not is_qwen21(p) or not requested(p):
+    if not is_qwen21(p):
+        return image
+    if native.ACTIVE:
+        return _apply_native(p, image)
+    if not requested(p):
         return image
     engine = p.sd_model
 
@@ -57,15 +86,13 @@ def apply(p, image: Image.Image) -> Image.Image:
     if alpha is None or index >= alpha.shape[0]:
         return image
 
-    a = alpha[index, 0].clamp(-1.0, 1.0).add(1.0).mul(127.5).round().numpy().astype(np.uint8)
-    if int(a.min()) >= OPAQUE:
+    a = _clean(alpha[index, 0].clamp(-1.0, 1.0).add(1.0).mul(127.5).round().numpy().astype(np.uint8))
+    if a is None:
         return image
     if (a.shape[1], a.shape[0]) != image.size:
         # resized after decoding (upscaler, face restoration...): the mask no longer lines up
         return image
 
-    a[a < FLOOR] = 0
-    a = remove_specks(a)
     rgba = image.convert("RGBA")
     rgba.putalpha(Image.fromarray(a, mode="L"))
     return rgba

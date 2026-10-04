@@ -8,12 +8,27 @@ import torch.nn as nn
 import torch.nn.functional as F
 from diffusers.configuration_utils import ConfigMixin, register_to_config
 
+from backend import memory_management
+from backend.args import args
 from backend.nn._vae import ProcessLatent
 from backend.nn.wan_vae import AttentionBlock, RMS_norm
 from backend.nn.wan_vae import CausalConv3d as _CausalConv3d
 from backend.operations import get_weight_and_bias, main_stream_worker, weights_manual_cast
 
 STRIP_ELEMS = 2**24
+
+
+def preferred_dtype() -> torch.dtype:
+    # ComfyUI runs this VAE in bf16 / fp16 / fp32 (in that order); the global Forge default skips fp16 because of
+    # the SD VAEs, which leaves GPUs without bf16 decoding in fp32 at twice the memory
+    if args.fp16_vae or args.bf16_vae or args.fp32_vae:
+        return memory_management.vae_dtype()
+    device = memory_management.vae_device()
+    if memory_management.should_use_bf16(device):
+        return torch.bfloat16
+    if memory_management.should_use_fp16(device):
+        return torch.float16
+    return torch.float32
 
 
 class CausalConv3d(_CausalConv3d):

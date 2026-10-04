@@ -11,7 +11,6 @@ if TYPE_CHECKING:
 import torch
 
 from backend import memory_management
-from backend.args import args
 from backend.diffusion_engine.base import ForgeDiffusionEngine, ForgeObjects
 from backend.patcher.clip import CLIP
 from backend.patcher.unet import UnetPatcher
@@ -20,25 +19,13 @@ from backend.patcher.vae import VAE
 from . import reference
 from .model import QwenImage21
 from .text_engine import Qwen3VL8BEngine
+from .vae import preferred_dtype
 
 VAE_SCALE = 16
 
 
-def _vae_dtype() -> torch.dtype:
-    # ComfyUI runs this VAE in bf16 / fp16 / fp32 (in that order); the global Forge default skips fp16 because of
-    # the SD VAEs, which leaves GPUs without bf16 decoding in fp32 at twice the memory
-    if args.fp16_vae or args.bf16_vae or args.fp32_vae:
-        return memory_management.vae_dtype()
-    device = memory_management.vae_device()
-    if memory_management.should_use_bf16(device):
-        return torch.bfloat16
-    if memory_management.should_use_fp16(device):
-        return torch.float16
-    return torch.float32
-
-
 def _qwen21_vae(model: torch.nn.Module) -> VAE:
-    vae = VAE(model=model, dtype=_vae_dtype())
+    vae = VAE(model=model, dtype=preferred_dtype())
     # 2d, 16x, 64 channels; memory estimates from ComfyUI
     vae.upscale_ratio = VAE_SCALE
     vae.downscale_ratio = VAE_SCALE

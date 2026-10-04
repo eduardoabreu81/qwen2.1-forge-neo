@@ -4,7 +4,7 @@
 
 import gradio as gr
 
-from . import reference
+from . import native, reference
 
 INFOTEXT_REFERENCES = "Qwen-Image 2.1 references"
 INFOTEXT_REFERENCE_SIZE = "Qwen-Image 2.1 reference size"
@@ -20,6 +20,8 @@ _warned_max = False
 
 
 def build(elem_id, is_img2img: bool) -> list:
+    if native.ACTIVE:
+        return _build_native(is_img2img)
     controls = []
     if is_img2img:
         controls.append(gr.Checkbox(label="Use the input image as reference (editing)", value=False, elem_id=elem_id("reference")))
@@ -30,7 +32,16 @@ def build(elem_id, is_img2img: bool) -> list:
     return controls
 
 
-def _gallery(p) -> list:
+def _build_native(is_img2img: bool) -> list:
+    # Forge Neo reads the references itself; the extension only says where they are
+    if is_img2img:
+        gr.Markdown(f"Editing is on while **Settings > Stable Diffusion > [Qwen 2.1] Enable Reference** is: the input image is then `<image1>`. For more references, up to 10 in all, add them to the **{IMAGE_STITCH}** gallery: they are `<image2>`, `<image3>`… in the order shown.", elem_classes="qwen21-note")
+    else:
+        gr.Markdown(f"To make a new picture from reference images, up to 10, add them to the **{IMAGE_STITCH}** gallery: they are `<image1>`, `<image2>`… in the order shown.", elem_classes="qwen21-note")
+    return []
+
+
+def gallery(p) -> list:
     # the images in ImageStitch's gallery, when its accordion is on
     runner = getattr(p, "scripts", None)
     for script in getattr(runner, "alwayson_scripts", []):
@@ -54,7 +65,7 @@ def collect(p, args, is_img2img: bool) -> tuple[list, str]:
     else:
         (size,) = (*args, *(SIZES[0],)[len(args) :])[:1]
         images = []
-    images += _gallery(p)
+    images += gallery(p)
     if len(images) > MAX_REFERENCES:
         if not _warned_max:
             _warned_max = True
