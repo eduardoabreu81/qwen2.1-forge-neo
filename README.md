@@ -161,6 +161,7 @@ A character sheet of the character from <image1>, full body from head to feet, s
 ### 🔌 LoRA
 
 - Qwen-Image 2.1 LoRAs through Forge's usual `<lora:name:weight>` syntax
+- On int8 checkpoints, set **Diffusion in Low Bits** to *Automatic (fp16 LoRA)*
 
 ### 🛡️ Safe by Design
 
@@ -203,7 +204,7 @@ For **image editing**, keep the settings of your checkpoint with **Denoising str
 
 ## 💡 Tips
 
-- Keep **Diffusion in Low Bits** on *Automatic*
+- Keep **Diffusion in Low Bits** on *Automatic*; with LoRAs on an int8 checkpoint, pick *Automatic (fp16 LoRA)*, which applies the LoRA while generating instead of merging it into the 8-bit weights, where part of it is lost
 - To keep **Viggle Turbo** after switching presets, set it in **Settings** → **Presets** → **QWEN21**
 - **Viggle Turbo** is for turbo checkpoints only - on a base checkpoint it leaves grain in fine detail such as hair, at any step count; use **Qwen Base** or **Simple** there
 - With CFG above 1, **Settings** → **Optimizations** → **Skip Negative Prompt during Later Steps** at 0.5, with **For the above option, skip every step** on, makes a base checkpoint about 12% faster with a near-identical image
