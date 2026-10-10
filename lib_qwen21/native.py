@@ -76,6 +76,35 @@ def _fast_vae() -> None:
         engine.__init__ = __init__
 
 
+def _tiled_rgba() -> None:
+    # Forge Neo's tiled VAE decoding builds three-channel outputs whatever the VAE puts out, so the four channels of
+    # Qwen-Image 2.1 crash it (Haoming02/sd-webui-forge-classic#1536): with "Enabled for VAE (always tiled)" and in the
+    # fallback after running out of memory. A VAE of three channels and a Forge Neo that passes them itself keep the
+    # original
+    import inspect
+
+    from backend.patcher import vae
+
+    original = vae.VAE.decode_tiled_
+    if getattr(original, "qwen21_original", None) or "out_channels" in inspect.getsource(original):
+        return
+
+    def decode_tiled_(self, samples, tile_x=64, tile_y=64, overlap=16):
+        channels = getattr(self, "output_channels", 3)
+        if channels == 3:
+            return original(self, samples, tile_x, tile_y, overlap)
+
+        def decode_fn(a):
+            return self.first_stage_model.decode(a.to(self.vae_dtype).to(self.device)).float()
+
+        tiles = ((tile_x // 2, tile_y * 2), (tile_x * 2, tile_y // 2), (tile_x, tile_y))
+        output = sum(vae.tiled_scale(samples, decode_fn, x, y, overlap, upscale_amount=self.upscale_ratio, out_channels=channels, output_device=self.output_device) for x, y in tiles)
+        return self.process_output(output / 3.0)
+
+    decode_tiled_.qwen21_original = original
+    vae.VAE.decode_tiled_ = decode_tiled_
+
+
 def apply() -> None:
     from . import scheduler, settings
 
@@ -89,6 +118,11 @@ def apply() -> None:
         _fast_vae()
     except Exception as e:
         print(f"[Qwen-Image 2.1] could not speed up the VAE: {e}")
+
+    try:
+        _tiled_rgba()
+    except Exception as e:
+        print(f"[Qwen-Image 2.1] could not fix the tiled VAE decoding: {e}")
 
     try:
         scheduler.register()

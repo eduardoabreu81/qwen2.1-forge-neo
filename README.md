@@ -4,7 +4,7 @@
 
 [![Forge Neo](https://img.shields.io/badge/Forge-Neo-blue)](https://github.com/Haoming02/sd-webui-forge-classic/tree/neo)
 [![Gradio](https://img.shields.io/badge/Gradio-4.40.0-orange)](https://gradio.app/)
-[![Version](https://img.shields.io/badge/Version-0.2.0-brightgreen)](https://github.com/eduardoabreu81/qwen2.1-forge-neo)
+[![Version](https://img.shields.io/badge/Version-0.2.1-brightgreen)](https://github.com/eduardoabreu81/qwen2.1-forge-neo)
 [![License](https://img.shields.io/badge/License-AGPL--3.0-green.svg)](LICENSE)
 
 > **Extension for [Stable Diffusion WebUI Forge - Neo](https://github.com/Haoming02/sd-webui-forge-classic/tree/neo)**
@@ -33,6 +33,7 @@ Generate with **[Qwen-Image 2.1](https://huggingface.co/Qwen/Qwen-Image-2.1)** i
 | Edits with the seed that made the input image | The model may barely change it | ✅ the noise is reshuffled, so the edit happens |
 | Transformer on GPUs without bf16 (RTX 20xx, GTX 16xx) | fp32 | ✅ fp16, faster and lighter |
 | VAE on GPUs without bf16 (RTX 20xx, GTX 16xx) | Several minutes per image on an RTX 2070 | ✅ a few seconds: fp16 and 2D convolutions |
+| Tiled VAE decoding (**Never OOM** or low VRAM) | Crashes at the end of the generation | ✅ works, transparency included |
 
 On a Forge Neo without native support, the extension does it all by itself, as described below.
 
@@ -51,6 +52,10 @@ On a Forge Neo without native support, the extension does it all by itself, as d
 ---
 
 ## 🆕 What's New
+
+### v0.2.1 - Tiled VAE Fix
+
+- **Tiled VAE decoding works with Forge Neo's native support** - with **Never OOM > Enabled for VAE (always tiled)**, or when Forge Neo falls back to tiled decoding after running out of memory, the generation no longer crashes at the very end, and transparent images keep their transparency.
 
 ### v0.2.0 - Ready for Native Support
 

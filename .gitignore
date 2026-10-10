@@ -10,3 +10,6 @@ __pycache__/
 docs/
 AGENTS.md
 AGENTS.local.md
+
+# test evidence and outputs
+.local/
