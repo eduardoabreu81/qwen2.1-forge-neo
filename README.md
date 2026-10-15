@@ -130,6 +130,7 @@ On a Forge Neo without native support, the extension does it all by itself, as d
 <p align="center"><img src=".github/images/more-edits.jpg" alt="More edit examples: sketch marks, background removal, outpaint and pose and layout from a reference" width="720"></p>
 
 - **Sketch marks** - draw a colored box around each thing to change, then say what goes in each box and ask to remove the box outlines
+- **Sketch marks without an image editor** - the companion **[Regional Boxes](https://github.com/eduardoabreu81/sd-regional-boxes-neo)** extension lets you drag the boxes over the img2img picture right in Forge, writes the note for each one (*"Inside the red box: ..."*) and draws the boxes on the input when you generate
 - **Inpaint** - the **Inpaint** tab works with the reference on, including **Only masked**; describe only the change and add *"Keep everything else exactly as it is"*
 - **Remove the background** - turn on **Transparent background** and write *"Remove the background, and output a PNG image"*
 - **Outpaint** - put the picture on a wider canvas with solid gray sides and ask to *"replace the solid gray areas with a seamless continuation of the scene"*
