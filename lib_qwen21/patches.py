@@ -82,10 +82,12 @@ def _hook_detection() -> None:
 def _hook_replace_state_dict() -> None:
     original = loader.replace_state_dict
 
-    def replace_state_dict(sd: dict, asd: dict, guess, path):
+    def replace_state_dict(sd: dict, asd: dict, *rest):
+        # Forge Neo calls (sd, asd, guess, path), and (sd, asd, metadata, guess, path) once its GGUF update lands
+        guess = rest[-2]
         # Forge Neo only accepts the 4B Qwen3-VL (Krea 2); the 8B one is filed under its own key
         if not _is_qwen3vl_8b(asd):
-            return original(sd, asd, guess, path)
+            return original(sd, asd, *rest)
         prefix = f"{guess.text_encoder_key_prefix[0]}qwen3vl_8b."
         for k in [k for k in sd if k.startswith(prefix)]:
             del sd[k]
