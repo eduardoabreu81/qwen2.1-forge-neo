@@ -1,3 +1,7 @@
+<p align="center">
+  <img src=".github/banner.jpg" alt="Qwen-Image 2.1 for Forge Neo banner"/>
+</p>
+
 # 🎨 Qwen-Image 2.1 for Forge Neo
 
 <div align="center">
